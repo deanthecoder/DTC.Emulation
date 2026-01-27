@@ -4,6 +4,56 @@ Shared emulator host and UI glue used by multiple systems (e.g., SMS and GB).
 Focuses on orchestration, display handling, recording, and rollback while leaving
 hardware-specific devices to per-system projects.
 
+## Reference Emulator Projects
+
+This library is used by two complete emulator implementations:
+
+- **G33kBoy (Game Boy Emulator)** — https://github.com/deanthecoder/G33kBoy  
+  Demonstrates LCD timing, cartridge mapping, save-state support, and integration with `DTC.Emulation`.
+
+- **MasterG33k (Master System Emulator)** — https://github.com/deanthecoder/MasterG33k  
+  Demonstrates VDP/PSG wiring, PAL/NTSC timing, debugger hooks, and how system-specific devices are structured around the core host.
+
+
+## Architecture
+
+```mermaid
+flowchart TB
+    UI[Avalonia UI<br/>ViewModels]
+    VM[<code>EmulatorViewModel</code>]
+    Runner[<code>MachineRunner</code><br/>CPU Thread + Timing]
+    Machine[<code>IMachine</code><br/>Video/Audio/Snapshotter]
+    CPU[<code>CPU + Bus</code>]
+    Devices[Video / Audio Chips<br/>Memory / IO]
+    Screen[<code>LcdScreen</code>]
+    Audio[<code>SoundDevice</code><br/>Audio Output]
+    Snap[<code>SnapshotHistory</code>]
+
+    UI --> VM
+    VM --> Runner
+    Runner --> Machine
+    Machine --> Snap
+
+    Machine --> CPU
+    CPU --> Devices
+
+    VM --> Screen
+    VM --> Audio
+    VM --> Snap
+
+    classDef ui fill:#E2C4A3,stroke:#8A5A2B,stroke-width:1px,color:#2A1B0D;
+    classDef core fill:#C8DCF8,stroke:#3E6FB3,stroke-width:1px,color:#12243B;
+    classDef hw fill:#CFE6D7,stroke:#3E8A5A,stroke-width:1px,color:#0F2A1B;
+    classDef io fill:#E9D4BE,stroke:#A56B2C,stroke-width:1px,color:#2E1A0B;
+    classDef mono font-family:monospace;
+
+    class UI ui;
+    class VM,Runner,Machine core;
+    class CPU,Devices hw;
+    class Screen,Audio,Snap io;
+    class VM,Runner,Machine,CPU,Screen,Audio,Snap mono;
+```
+
 ## Key Types
 
 - `MachineRunner`: Runs a machine on its own CPU thread and keeps emulated time in sync with real time.
