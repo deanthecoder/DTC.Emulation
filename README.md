@@ -1,8 +1,9 @@
 # DTC.Emulation
 
 Shared emulator host and UI glue used by multiple systems (e.g., SMS and GB).
-Focuses on orchestration, display handling, recording, and rollback while leaving
-hardware-specific devices to per-system projects.
+This repo was used to write each emulator listed below. Focuses on orchestration,
+display handling, recording, and rollback while leaving hardware-specific devices
+to per-system projects.
 
 ## Reference Emulator Projects
 
