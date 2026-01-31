@@ -173,12 +173,18 @@ public sealed class EmulatorViewModel : ViewModelBase, IDisposable
         m_recorder.Dispose();
     }
 
+    /// <summary>
+    /// Handles live video output from the emulator by updating the display and tracking the latest frame state.
+    /// </summary>
     private void OnFrameRendered(object sender, byte[] frameBuffer)
     {
         if (frameBuffer == null || frameBuffer.Length == 0)
             return;
 
-        var bufferCopy = new byte[frameBuffer.Length];
+        var bufferCopy = m_lastFrameBuffer;
+        if (bufferCopy == null || bufferCopy.Length != frameBuffer.Length)
+            bufferCopy = new byte[frameBuffer.Length];
+
         Buffer.BlockCopy(frameBuffer, 0, bufferCopy, 0, frameBuffer.Length);
         m_lastFrameBuffer = bufferCopy;
         m_lastFrameChecksum = ComputeFrameChecksum(frameBuffer);
@@ -200,10 +206,13 @@ public sealed class EmulatorViewModel : ViewModelBase, IDisposable
         DisplayUpdated?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>
+    /// Rebuilds the display from the current video source (used after state loads, not during live rendering).
+    /// </summary>
     private void RefreshDisplayFromVideo()
     {
         var frameBuffer = new byte[m_machine.Video.FrameWidth * m_machine.Video.FrameHeight * 4];
-        m_machine.Video.CopyFrameBuffer(frameBuffer);
+        m_machine.Video.CopyToFrameBuffer(frameBuffer);
         m_lastFrameBuffer = frameBuffer;
         m_lastFrameChecksum = ComputeFrameChecksum(frameBuffer);
         m_lastFrameTicks = m_machine.CpuTicks;

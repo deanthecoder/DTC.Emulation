@@ -18,5 +18,5 @@ public interface IVideoSource
     int FrameWidth { get; }
     int FrameHeight { get; }
     event EventHandler<byte[]> FrameRendered;
-    void CopyFrameBuffer(Span<byte> frameBuffer);
+    void CopyToFrameBuffer(Span<byte> frameBuffer);
 }
