@@ -11,19 +11,25 @@ using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using DTC.Core.Image;
+using DTC.Emulation.Image;
 
 namespace DTC.Emulation;
 
 /// <summary>
 /// Simple LCD surface that copies RGBA frame buffers into a writeable bitmap with optional screen effects.
 /// </summary>
-public sealed class LcdScreen : IDisposable
+public sealed class LcdScreen : ILcdScreen, IDisposable
 {
     private byte[] m_previousOutput;
 
     public WriteableBitmap Display { get; }
     public CrtFrameBuffer FrameBuffer { get; }
+
+    public bool IsPaused
+    {
+        get => FrameBuffer.IsPaused;
+        set => FrameBuffer.IsPaused = value;
+    }
 
     public LcdScreen(int width, int height)
     {

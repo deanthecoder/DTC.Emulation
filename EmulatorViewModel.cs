@@ -25,7 +25,7 @@ public sealed class EmulatorViewModel : ViewModelBase, IDisposable
     private readonly IMachine m_machine;
     private readonly MachineRunner m_runner;
     private readonly IAudioOutputDevice m_audioDevice;
-    private readonly LcdScreen m_screen;
+    private readonly ILcdScreen m_screen;
     private readonly Func<double> m_videoFrameRateProvider;
     private readonly Func<string> m_romTitleProvider;
     private readonly DisplayRecorder m_recorder;
@@ -38,7 +38,7 @@ public sealed class EmulatorViewModel : ViewModelBase, IDisposable
         IMachine machine,
         MachineRunner runner,
         IAudioOutputDevice audioDevice,
-        LcdScreen screen,
+        ILcdScreen screen,
         Func<double> videoFrameRateProvider,
         Func<string> romTitleProvider,
         Func<double> cpuHzProvider)
@@ -111,7 +111,7 @@ public sealed class EmulatorViewModel : ViewModelBase, IDisposable
     public bool TogglePause()
     {
         var isPaused = m_runner.TogglePause();
-        m_screen.FrameBuffer.IsPaused = isPaused;
+        m_screen.IsPaused = isPaused;
 
         var frameBufferCopy = m_lastFrameBuffer;
         if (frameBufferCopy != null)
@@ -123,8 +123,11 @@ public sealed class EmulatorViewModel : ViewModelBase, IDisposable
         return isPaused;
     }
 
-    public void SetScreenEffectEnabled(bool isEnabled) =>
-        m_screen.FrameBuffer.IsCrt = isEnabled;
+    public void SetScreenEffectEnabled(bool isEnabled)
+    {
+        if (m_screen is LcdScreen emulationScreen)
+            emulationScreen.FrameBuffer.IsCrt = isEnabled;
+    }
 
     public void SaveScreenshot(FileInfo file)
     {
