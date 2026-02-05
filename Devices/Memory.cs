@@ -15,26 +15,27 @@ namespace DTC.Emulation.Devices;
 /// Simple linear RAM device.
 /// </summary>
 /// <remarks>
-/// Provides flat read/write storage for the full 64K address space by default.
+/// Provides flat read/write storage for the full address space by default.
 /// </remarks>
 public sealed class Memory : IMemDevice
 {
     public byte[] Data { get; }
-    public ushort FromAddr { get; }
-    public ushort ToAddr { get; }
+    public uint FromAddr { get; }
+    public uint ToAddr { get; }
 
     public Memory(int size = 0x10000)
     {
         if (size <= 0)
             throw new ArgumentOutOfRangeException(nameof(size));
+
         Data = new byte[size];
-        FromAddr = 0x0000;
-        ToAddr = (ushort)(size - 1);
+        FromAddr = 0x00000000;
+        ToAddr = (uint)(size - 1);
     }
 
-    public byte Read8(ushort address) => Data[address % Data.Length];
+    public byte Read8(uint address) => Data[GetIndex(address)];
 
-    public void Write8(ushort address, byte value) => Data[address % Data.Length] = value;
+    public void Write8(uint address, byte value) => Data[GetIndex(address)] = value;
 
     public int GetStateSize() => Data.Length;
 
@@ -43,4 +44,7 @@ public sealed class Memory : IMemDevice
 
     public void LoadState(ref StateReader reader) =>
         reader.ReadBytes(Data);
+
+    private int GetIndex(uint address) =>
+        (int)(address % (uint)Data.Length);
 }

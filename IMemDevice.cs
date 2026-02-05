@@ -18,9 +18,9 @@ namespace DTC.Emulation;
 /// </remarks>
 public interface IMemDevice
 {
-    ushort FromAddr { get; }
-    ushort ToAddr { get; }
+    uint FromAddr { get; }
+    uint ToAddr { get; }
 
-    byte Read8(ushort addr);
-    void Write8(ushort addr, byte value);
+    byte Read8(uint address);
+    void Write8(uint address, byte value);
 }

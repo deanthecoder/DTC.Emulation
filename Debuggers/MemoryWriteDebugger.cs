@@ -16,25 +16,25 @@ namespace DTC.Emulation.Debuggers;
 /// </summary>
 public sealed class MemoryWriteDebugger : CpuDebuggerBase
 {
-    private readonly ushort m_targetAddress;
+    private readonly uint m_targetAddress;
     private readonly byte? m_targetValue;
     private readonly Action<byte> m_onWrite;
 
-    public MemoryWriteDebugger(ushort targetAddress, byte targetValue, Action<byte> onWrite)
+    public MemoryWriteDebugger(uint targetAddress, byte targetValue, Action<byte> onWrite)
     {
         m_targetAddress = targetAddress;
         m_targetValue = targetValue;
         m_onWrite = onWrite;
     }
 
-    public MemoryWriteDebugger(ushort targetAddress, Action<byte> onWrite)
+    public MemoryWriteDebugger(uint targetAddress, Action<byte> onWrite)
     {
         m_targetAddress = targetAddress;
         m_targetValue = null;
         m_onWrite = onWrite;
     }
 
-    public override void OnMemoryWrite(CpuBase cpu, ushort address, byte value)
+    public override void OnMemoryWrite(CpuBase cpu, uint address, byte value)
     {
         if (address != m_targetAddress)
             return;

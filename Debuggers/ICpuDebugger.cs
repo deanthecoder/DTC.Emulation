@@ -15,8 +15,8 @@ namespace DTC.Emulation.Debuggers;
 /// </summary>
 public interface ICpuDebugger
 {
-    void BeforeInstruction(CpuBase cpu, ushort opcodeAddress, byte opcode);
+    void BeforeInstruction(CpuBase cpu, uint opcodeAddress, byte opcode);
     void AfterStep(CpuBase cpu);
-    void OnMemoryRead(CpuBase cpu, ushort address, byte value);
-    void OnMemoryWrite(CpuBase cpu, ushort address, byte value);
+    void OnMemoryRead(CpuBase cpu, uint address, byte value);
+    void OnMemoryWrite(CpuBase cpu, uint address, byte value);
 }

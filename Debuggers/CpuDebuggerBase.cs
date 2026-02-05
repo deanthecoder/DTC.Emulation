@@ -11,11 +11,11 @@
 namespace DTC.Emulation.Debuggers;
 
 /// <summary>
-/// Base class for CPU debuggers with no-op implementations.
+/// Base implementation for CPU debuggers with no-op behavior.
 /// </summary>
 public abstract class CpuDebuggerBase : ICpuDebugger
 {
-    public virtual void BeforeInstruction(CpuBase cpu, ushort opcodeAddress, byte opcode)
+    public virtual void BeforeInstruction(CpuBase cpu, uint opcodeAddress, byte opcode)
     {
     }
 
@@ -23,11 +23,11 @@ public abstract class CpuDebuggerBase : ICpuDebugger
     {
     }
 
-    public virtual void OnMemoryRead(CpuBase cpu, ushort address, byte value)
+    public virtual void OnMemoryRead(CpuBase cpu, uint address, byte value)
     {
     }
 
-    public virtual void OnMemoryWrite(CpuBase cpu, ushort address, byte value)
+    public virtual void OnMemoryWrite(CpuBase cpu, uint address, byte value)
     {
     }
 }

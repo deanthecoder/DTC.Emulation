@@ -16,25 +16,25 @@ namespace DTC.Emulation.Debuggers;
 /// </summary>
 public sealed class MemoryReadDebugger : CpuDebuggerBase
 {
-    private readonly ushort m_targetAddress;
+    private readonly uint m_targetAddress;
     private readonly byte? m_targetValue;
     private readonly Action<byte> m_onRead;
 
-    public MemoryReadDebugger(ushort targetAddress, byte targetValue, Action<byte> onRead)
+    public MemoryReadDebugger(uint targetAddress, byte targetValue, Action<byte> onRead)
     {
         m_targetAddress = targetAddress;
         m_targetValue = targetValue;
         m_onRead = onRead;
     }
 
-    public MemoryReadDebugger(ushort targetAddress, Action<byte> onRead)
+    public MemoryReadDebugger(uint targetAddress, Action<byte> onRead)
     {
         m_targetAddress = targetAddress;
         m_targetValue = null;
         m_onRead = onRead;
     }
 
-    public override void OnMemoryRead(CpuBase cpu, ushort address, byte value)
+    public override void OnMemoryRead(CpuBase cpu, uint address, byte value)
     {
         if (address != m_targetAddress)
             return;

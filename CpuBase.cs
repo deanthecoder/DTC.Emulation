@@ -38,11 +38,11 @@ public abstract class CpuBase
 
     public abstract void Reset();
     public abstract void Step();
-    public abstract byte Read8(ushort address);
-    public abstract void Write8(ushort address, byte value);
+    public abstract byte Read8(uint address);
+    public abstract void Write8(uint address, byte value);
 
     [Conditional("DEBUG")]
-    protected void NotifyBeforeInstruction(ushort opcodeAddress, byte opcode)
+    protected void NotifyBeforeInstruction(uint opcodeAddress, byte opcode)
     {
         if (m_debuggers.Count == 0)
             return;
@@ -62,7 +62,7 @@ public abstract class CpuBase
     }
 
     [Conditional("DEBUG")]
-    protected void NotifyMemoryRead(ushort address, byte value)
+    protected void NotifyMemoryRead(uint address, byte value)
     {
         if (m_debuggers.Count == 0)
             return;
@@ -72,7 +72,7 @@ public abstract class CpuBase
     }
 
     [Conditional("DEBUG")]
-    protected void NotifyMemoryWrite(ushort address, byte value)
+    protected void NotifyMemoryWrite(uint address, byte value)
     {
         if (m_debuggers.Count == 0)
             return;

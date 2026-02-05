@@ -16,16 +16,16 @@ namespace DTC.Emulation.Debuggers;
 /// </summary>
 public sealed class PcBreakpointDebugger : CpuDebuggerBase
 {
-    private readonly ushort m_breakAddress;
+    private readonly uint m_breakAddress;
     private readonly Action m_action;
 
-    public PcBreakpointDebugger(ushort breakAddress, Action action)
+    public PcBreakpointDebugger(uint breakAddress, Action action)
     {
         m_breakAddress = breakAddress;
         m_action = action;
     }
 
-    public override void BeforeInstruction(CpuBase cpu, ushort opcodeAddress, byte opcode)
+    public override void BeforeInstruction(CpuBase cpu, uint opcodeAddress, byte opcode)
     {
         if (opcodeAddress != m_breakAddress)
             return;
