@@ -130,6 +130,29 @@ public sealed class Bus
         Write8(address + 2, (byte)(value & 0xFF));
     }
 
+    /// <summary>
+    /// Reads a 32-bit value in big-endian order.
+    /// </summary>
+    public uint Read32BigEndian(uint address)
+    {
+        var b0 = Read8(address);
+        var b1 = Read8(address + 1);
+        var b2 = Read8(address + 2);
+        var b3 = Read8(address + 3);
+        return (uint)((b0 << 24) | (b1 << 16) | (b2 << 8) | b3);
+    }
+
+    /// <summary>
+    /// Writes a 32-bit value in big-endian order.
+    /// </summary>
+    public void Write32BigEndian(uint address, uint value)
+    {
+        Write8(address, (byte)((value >> 24) & 0xFF));
+        Write8(address + 1, (byte)((value >> 16) & 0xFF));
+        Write8(address + 2, (byte)((value >> 8) & 0xFF));
+        Write8(address + 3, (byte)(value & 0xFF));
+    }
+    
     public byte ReadPort(ushort portAddress) =>
         m_portDevice?.Read8(portAddress) ?? 0xFF;
 
