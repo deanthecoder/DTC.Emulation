@@ -15,7 +15,7 @@ namespace DTC.Emulation.Debuggers;
 /// </summary>
 public abstract class CpuDebuggerBase : ICpuDebugger
 {
-    public virtual void BeforeInstruction(CpuBase cpu, uint opcodeAddress, byte opcode)
+    public virtual void BeforeInstruction(CpuBase cpu, uint opcodeAddress, ushort opcode)
     {
     }
 

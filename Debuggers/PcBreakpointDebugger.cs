@@ -25,7 +25,7 @@ public sealed class PcBreakpointDebugger : CpuDebuggerBase
         m_action = action;
     }
 
-    public override void BeforeInstruction(CpuBase cpu, uint opcodeAddress, byte opcode)
+    public override void BeforeInstruction(CpuBase cpu, uint opcodeAddress, ushort opcode)
     {
         if (opcodeAddress != m_breakAddress)
             return;

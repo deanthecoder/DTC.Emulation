@@ -15,7 +15,14 @@ namespace DTC.Emulation.Debuggers;
 /// </summary>
 public interface ICpuDebugger
 {
-    void BeforeInstruction(CpuBase cpu, uint opcodeAddress, byte opcode);
+    /// <summary>
+    /// Called before an instruction executes.
+    /// </summary>
+    /// <param name="cpu">CPU issuing the callback.</param>
+    /// <param name="opcodeAddress">Address of the instruction word.</param>
+    /// <param name="opcode">Instruction opcode value. For 8-bit CPUs use the low byte.</param>
+    void BeforeInstruction(CpuBase cpu, uint opcodeAddress, ushort opcode);
+
     void AfterStep(CpuBase cpu);
     void OnMemoryRead(CpuBase cpu, uint address, byte value);
     void OnMemoryWrite(CpuBase cpu, uint address, byte value);

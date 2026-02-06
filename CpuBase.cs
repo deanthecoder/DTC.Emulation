@@ -42,7 +42,7 @@ public abstract class CpuBase
     public abstract void Write8(uint address, byte value);
 
     [Conditional("DEBUG")]
-    protected void NotifyBeforeInstruction(uint opcodeAddress, byte opcode)
+    protected void NotifyBeforeInstruction(uint opcodeAddress, ushort opcode)
     {
         if (m_debuggers.Count == 0)
             return;
