@@ -42,13 +42,18 @@ public abstract class CpuBase
     public abstract void Write8(uint address, byte value);
 
     [Conditional("DEBUG")]
-    protected void NotifyBeforeInstruction(uint opcodeAddress, ushort opcode)
+    protected void NotifyBeforeInstruction(uint opcodeAddress, ushort opcode, string instructionText = null)
     {
         if (m_debuggers.Count == 0)
             return;
 
         foreach (var debugger in m_debuggers)
-            debugger.BeforeInstruction(this, opcodeAddress, opcode);
+        {
+            if (debugger is IInstructionTextCpuDebugger instructionTextDebugger)
+                instructionTextDebugger.BeforeInstruction(this, opcodeAddress, opcode, instructionText);
+            else
+                debugger.BeforeInstruction(this, opcodeAddress, opcode);
+        }
     }
 
     [Conditional("DEBUG")]
