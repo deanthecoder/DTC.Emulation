@@ -75,7 +75,7 @@ public interface IMachine
 
     /// <summary>
     /// Executes one CPU step (one instruction boundary in current core model).
-    /// Machine-level instruction interception (for example NatFeats hooks) may occur here before CPU decode.
+    /// Machine-level interception for platform-specific hooks may occur here before CPU decode.
     /// Implement this from day one.
     /// </summary>
     void StepCpu();

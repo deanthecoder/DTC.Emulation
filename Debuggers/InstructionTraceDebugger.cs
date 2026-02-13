@@ -17,7 +17,7 @@ namespace DTC.Emulation.Debuggers;
 /// </summary>
 public sealed class InstructionTraceDebugger : IInstructionTextCpuDebugger
 {
-    private readonly object m_sync = new();
+    private readonly Lock m_sync = new();
     private readonly CircularBuffer<string> m_traceBuffer;
     private readonly Func<CpuBase, uint, ushort, string, string> m_formatter;
     private bool m_hasPendingInstruction;
