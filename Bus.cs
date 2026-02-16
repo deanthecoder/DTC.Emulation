@@ -16,7 +16,7 @@ namespace DTC.Emulation;
 /// </summary>
 public sealed class Bus
 {
-    private readonly List<IMemDevice> m_devices = [];
+    private readonly IMemDevice[] m_devices;
     private readonly IPortDevice m_portDevice;
 
     public Bus(int byteSize, IPortDevice portDevice = null)
@@ -32,6 +32,8 @@ public sealed class Bus
 
         m_portDevice = portDevice;
         MaxAddress = MainMemory.ToAddr;
+        var busSize = checked((int)(MaxAddress + 1));
+        m_devices = new IMemDevice[busSize];
         Attach(MainMemory);
     }
 
@@ -50,7 +52,9 @@ public sealed class Bus
         if (device.ToAddr > MaxAddress)
             throw new ArgumentOutOfRangeException(nameof(device), "Device address range is outside bus space.");
 
-        m_devices.Add(device);
+        var fromAddress = checked((int)device.FromAddr);
+        var mapLength = checked((int)(device.ToAddr - device.FromAddr + 1));
+        Array.Fill(m_devices, device, fromAddress, mapLength);
     }
 
     public byte Read8(uint address)
@@ -58,7 +62,7 @@ public sealed class Bus
         if (address > MaxAddress)
             return 0xFF;
 
-        var device = FindDevice(address);
+        var device = m_devices[(int)address];
         return device?.Read8(address) ?? 0xFF;
     }
 
@@ -67,7 +71,7 @@ public sealed class Bus
         if (address > MaxAddress)
             return;
 
-        var device = FindDevice(address);
+        var device = m_devices[(int)address];
         device?.Write8(address, value);
     }
 
@@ -127,15 +131,4 @@ public sealed class Bus
     public void WritePort(ushort portAddress, byte value) =>
         m_portDevice?.Write8(portAddress, value);
 
-    private IMemDevice FindDevice(uint address)
-    {
-        for (var i = m_devices.Count - 1; i >= 0; i--)
-        {
-            var device = m_devices[i];
-            if (address >= device.FromAddr && address <= device.ToAddr)
-                return device;
-        }
-
-        return null;
-    }
 }
