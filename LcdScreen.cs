@@ -16,7 +16,7 @@ using DTC.Emulation.Image;
 namespace DTC.Emulation;
 
 /// <summary>
-/// Simple LCD surface that copies RGBA frame buffers into a writeable bitmap with optional screen effects.
+/// Simple LCD surface that copies RGB frame buffers into a writeable bitmap with optional screen effects.
 /// </summary>
 public sealed class LcdScreen : ILcdScreen, IDisposable
 {

@@ -7,6 +7,7 @@
 // about your modifications. Your contributions are valued!
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
+using System.Runtime.CompilerServices;
 using DTC.Emulation.Devices;
 
 namespace DTC.Emulation;
@@ -17,20 +18,18 @@ namespace DTC.Emulation;
 public sealed class Bus
 {
     private readonly IMemDevice[] m_devices;
-    private readonly IPortDevice m_portDevice;
 
-    public Bus(int byteSize, IPortDevice portDevice = null)
-        : this(new Memory(byteSize), portDevice)
+    public Bus(uint byteSize)
+        : this(new Memory(byteSize))
     {
     }
 
-    public Bus(Memory memory, IPortDevice portDevice = null)
+    public Bus(Memory memory)
     {
         MainMemory = memory ?? throw new ArgumentNullException(nameof(memory));
         if (MainMemory.ToAddr < MainMemory.FromAddr)
             throw new ArgumentOutOfRangeException(nameof(memory), "Memory address range is invalid.");
 
-        m_portDevice = portDevice;
         MaxAddress = MainMemory.ToAddr;
         var busSize = checked((int)(MaxAddress + 1));
         m_devices = new IMemDevice[busSize];
@@ -57,6 +56,7 @@ public sealed class Bus
         Array.Fill(m_devices, device, fromAddress, mapLength);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte Read8(uint address)
     {
         if (address > MaxAddress)
@@ -66,6 +66,7 @@ public sealed class Bus
         return device?.Read8(address) ?? 0xFF;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Write8(uint address, byte value)
     {
         if (address > MaxAddress)
@@ -76,27 +77,9 @@ public sealed class Bus
     }
 
     /// <summary>
-    /// Reads a 16-bit value in little-endian order.
-    /// </summary>
-    public ushort Read16(uint address)
-    {
-        var lo = Read8(address);
-        var hi = Read8(address + 1);
-        return (ushort)((hi << 8) | lo);
-    }
-
-    /// <summary>
-    /// Writes a 16-bit value in little-endian order.
-    /// </summary>
-    public void Write16(uint address, ushort value)
-    {
-        Write8(address, (byte)(value & 0xFF));
-        Write8(address + 1, (byte)(value >> 8));
-    }
-
-    /// <summary>
     /// Reads a 16-bit value in big-endian order.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ushort Read16BigEndian(uint address)
     {
         var hi = Read8(address);
@@ -107,6 +90,7 @@ public sealed class Bus
     /// <summary>
     /// Writes a 16-bit value in big-endian order.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Write16BigEndian(uint address, ushort value)
     {
         Write8(address, (byte)(value >> 8));
@@ -116,6 +100,7 @@ public sealed class Bus
     /// <summary>
     /// Reads a 32-bit value in big-endian order.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint Read32BigEndian(uint address)
     {
         var b0 = Read8(address);
@@ -124,11 +109,4 @@ public sealed class Bus
         var b3 = Read8(address + 3);
         return (uint)((b0 << 24) | (b1 << 16) | (b2 << 8) | b3);
     }
-
-    public byte ReadPort(ushort portAddress) =>
-        m_portDevice?.Read8(portAddress) ?? 0xFF;
-
-    public void WritePort(ushort portAddress, byte value) =>
-        m_portDevice?.Write8(portAddress, value);
-
 }

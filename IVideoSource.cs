@@ -17,6 +17,12 @@ public interface IVideoSource
 {
     int FrameWidth { get; }
     int FrameHeight { get; }
+    
+    /// <summary>
+    /// Gets the number of bytes per pixel in the frame buffer exposed by this source.
+    /// </summary>
+    int FrameBytesPerPixel { get; }
+    
     event EventHandler<byte[]> FrameRendered;
     void CopyToFrameBuffer(Span<byte> frameBuffer);
 }

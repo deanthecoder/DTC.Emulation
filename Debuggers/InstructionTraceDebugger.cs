@@ -56,6 +56,9 @@ public sealed class InstructionTraceDebugger : IInstructionTextCpuDebugger
     public bool IsEnabled { get; set; } = true;
 
     /// <inheritdoc />
+    public bool WantsInstructionText => IsEnabled;
+
+    /// <inheritdoc />
     public void BeforeInstruction(CpuBase cpu, uint opcodeAddress, ushort opcode) =>
         BeforeInstruction(cpu, opcodeAddress, opcode, null);
 

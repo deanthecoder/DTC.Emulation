@@ -18,6 +18,7 @@ namespace DTC.Emulation;
 public abstract class CpuBase
 {
     private readonly List<ICpuDebugger> m_debuggers = [];
+    private bool m_hasInstructionTextDebuggerCandidates;
 
     protected CpuBase(Bus bus)
     {
@@ -34,12 +35,36 @@ public abstract class CpuBase
             throw new ArgumentNullException(nameof(debugger));
 
         m_debuggers.Add(debugger);
+        if (debugger is IInstructionTextCpuDebugger)
+            m_hasInstructionTextDebuggerCandidates = true;
     }
 
     public abstract void Reset();
     public abstract void Step();
     public abstract byte Read8(uint address);
     public abstract void Write8(uint address, byte value);
+
+    /// <summary>
+    /// Gets whether one or more attached debuggers currently require resolved instruction text.
+    /// </summary>
+    protected bool HasInstructionTextDebugger
+    {
+        get
+        {
+            if (!m_hasInstructionTextDebuggerCandidates)
+                return false;
+
+            foreach (var debugger in m_debuggers)
+            {
+                if (debugger is not IInstructionTextCpuDebugger textDebugger)
+                    continue;
+                if (textDebugger.WantsInstructionText)
+                    return true;
+            }
+
+            return false;
+        }
+    }
 
     [Conditional("DEBUG")]
     protected void NotifyBeforeInstruction(uint opcodeAddress, ushort opcode, string instructionText = null)

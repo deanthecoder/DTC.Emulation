@@ -14,10 +14,11 @@ using System.Runtime.CompilerServices;
 namespace DTC.Emulation.Image;
 
 /// <summary>
-/// Software framebuffer that applies CRT-style effects to RGBA input with a 3x output scale.
+/// Software framebuffer that applies CRT-style effects to RGB input with a 3x output scale.
 /// </summary>
 public sealed class CrtFrameBuffer
 {
+    private const int SourceBytesPerPixel = 3;
     public const int BytesPerPixel = 4;
 
     private const int Scale = 3;
@@ -60,7 +61,7 @@ public sealed class CrtFrameBuffer
     /// <summary>
     /// Number of bytes required for the input buffer.
     /// </summary>
-    private int InputByteLength => m_inputWidth * m_inputHeight * BytesPerPixel;
+    private int InputByteLength => m_inputWidth * m_inputHeight * SourceBytesPerPixel;
 
     /// <summary>
     /// Number of bytes required for the output buffer.
@@ -152,7 +153,7 @@ public sealed class CrtFrameBuffer
         const float brightness = 3.0f / (1.0f + 2.0f * PhosphorShrink);
         const float brightnessR = brightness * CrtSaturationR;
         const float brightnessB = brightness * CrtSaturationB;
-        var inputStride = m_inputWidth * BytesPerPixel;
+        var inputStride = m_inputWidth * SourceBytesPerPixel;
         var outputStride = OutputWidth * BytesPerPixel;
 
         var dy = 0;
@@ -190,7 +191,7 @@ public sealed class CrtFrameBuffer
                     sampleY = Math.Clamp(y + dy, 0, m_inputHeight - 1);
                 }
 
-                var src = sampleY * inputStride + sampleX * BytesPerPixel;
+                var src = sampleY * inputStride + sampleX * SourceBytesPerPixel;
                 var r = (float)source[src];
                 var g = (float)source[src + 1];
                 var b = (float)source[src + 2];
@@ -269,7 +270,7 @@ public sealed class CrtFrameBuffer
 
     private void RenderAsPlain(byte[] source)
     {
-        var inputStride = m_inputWidth * BytesPerPixel;
+        var inputStride = m_inputWidth * SourceBytesPerPixel;
         var outputStride = OutputWidth * BytesPerPixel;
 
         for (var y = 0; y < m_inputHeight; y++)
@@ -280,7 +281,7 @@ public sealed class CrtFrameBuffer
 
             for (var x = 0; x < m_inputWidth; x++)
             {
-                var src = inputRow + x * BytesPerPixel;
+                var src = inputRow + x * SourceBytesPerPixel;
                 var r = source[src];
                 var g = source[src + 1];
                 var b = source[src + 2];

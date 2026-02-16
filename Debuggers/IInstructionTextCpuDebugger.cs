@@ -17,6 +17,11 @@ namespace DTC.Emulation.Debuggers;
 public interface IInstructionTextCpuDebugger : ICpuDebugger
 {
     /// <summary>
+    /// Gets whether the CPU should spend time resolving full instruction text for this debugger.
+    /// </summary>
+    bool WantsInstructionText => false;
+
+    /// <summary>
     /// Called before an instruction executes, including optional CPU-provided text.
     /// </summary>
     /// <param name="cpu">CPU issuing the callback.</param>

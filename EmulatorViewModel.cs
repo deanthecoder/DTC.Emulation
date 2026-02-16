@@ -141,7 +141,7 @@ public sealed class EmulatorViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        var expectedSize = m_machine.Video.FrameWidth * m_machine.Video.FrameHeight * 4;
+        var expectedSize = m_machine.Video.FrameWidth * m_machine.Video.FrameHeight * m_machine.Video.FrameBytesPerPixel;
         if (frameBuffer.Length != expectedSize)
         {
             Logger.Instance.Warn($"Screenshot aborted; expected {expectedSize} bytes but got {frameBuffer.Length}.");
@@ -150,7 +150,7 @@ public sealed class EmulatorViewModel : ViewModelBase, IDisposable
 
         var frameCopy = new byte[frameBuffer.Length];
         Buffer.BlockCopy(frameBuffer, 0, frameCopy, 0, frameBuffer.Length);
-        TgaWriter.Write(file, frameCopy, m_machine.Video.FrameWidth, m_machine.Video.FrameHeight, 4);
+        TgaWriter.Write(file, frameCopy, m_machine.Video.FrameWidth, m_machine.Video.FrameHeight, m_machine.Video.FrameBytesPerPixel);
     }
 
     public void ToggleRecording()
@@ -214,7 +214,7 @@ public sealed class EmulatorViewModel : ViewModelBase, IDisposable
     /// </summary>
     private void RefreshDisplayFromVideo()
     {
-        var frameBuffer = new byte[m_machine.Video.FrameWidth * m_machine.Video.FrameHeight * 4];
+        var frameBuffer = new byte[m_machine.Video.FrameWidth * m_machine.Video.FrameHeight * m_machine.Video.FrameBytesPerPixel];
         m_machine.Video.CopyToFrameBuffer(frameBuffer);
         m_lastFrameBuffer = frameBuffer;
         m_lastFrameChecksum = ComputeFrameChecksum(frameBuffer);
@@ -229,9 +229,10 @@ public sealed class EmulatorViewModel : ViewModelBase, IDisposable
         const uint offsetBasis = 2166136261;
         const uint prime = 16777619;
         var hash = offsetBasis;
-        foreach (var b in frameBuffer)
+        var span = frameBuffer.AsSpan();
+        for (var i = 0; i < span.Length; i++)
         {
-            hash ^= b;
+            hash ^= span[i];
             hash *= prime;
         }
 
