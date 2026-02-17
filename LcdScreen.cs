@@ -21,6 +21,7 @@ namespace DTC.Emulation;
 public sealed class LcdScreen : ILcdScreen, IDisposable
 {
     private byte[] m_previousOutput;
+    private CrtBlendWeights m_crtBlendWeights = CrtBlendWeights.Default;
 
     public WriteableBitmap Display { get; }
     public CrtFrameBuffer FrameBuffer { get; }
@@ -29,6 +30,21 @@ public sealed class LcdScreen : ILcdScreen, IDisposable
     {
         get => FrameBuffer.IsPaused;
         set => FrameBuffer.IsPaused = value;
+    }
+
+    /// <summary>
+    /// Controls CRT phosphor persistence blending between previous and current frames.
+    /// Defaults to a legacy 3:2 blend to preserve existing behavior in other apps.
+    /// </summary>
+    public CrtBlendWeights CrtBlendWeights
+    {
+        get => m_crtBlendWeights;
+        set
+        {
+            if (!value.IsValid)
+                throw new ArgumentOutOfRangeException(nameof(value), "At least one blend weight must be non-zero.");
+            m_crtBlendWeights = value;
+        }
     }
 
     public LcdScreen(int width, int height)
@@ -82,8 +98,11 @@ public sealed class LcdScreen : ILcdScreen, IDisposable
         }
 
         var length = output.Length;
+        var previousWeight = m_crtBlendWeights.PreviousFrameWeight;
+        var currentWeight = m_crtBlendWeights.CurrentFrameWeight;
+        var totalWeight = previousWeight + currentWeight;
         for (var i = 0; i < length; i++)
-            previous[i] = (byte)((previous[i] * 3 + output[i] * 2) / 5);
+            previous[i] = (byte)((previous[i] * previousWeight + output[i] * currentWeight) / totalWeight);
 
         return previous;
     }
