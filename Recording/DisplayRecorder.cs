@@ -53,11 +53,12 @@ public sealed class DisplayRecorder : IDisposable
         if (IsRecording)
             return;
 
-        if (!RecordingSession.IsFfmpegAvailable(out _))
+        if (!RecordingSession.IsFfmpegAvailable(out var reason))
         {
+            Logger.Instance.Warn($"Recording unavailable: {reason}");
             DialogService.Instance.ShowMessage(
                 "Recording unavailable",
-                "FFmpeg was not detected. Install FFmpeg and ensure it's on your PATH, then try again.");
+                $"FFmpeg was not detected. {reason}");
             return;
         }
 
@@ -80,6 +81,7 @@ public sealed class DisplayRecorder : IDisposable
         }
         catch (Exception ex)
         {
+            Logger.Instance.Exception("Unable to start recording.", ex);
             m_session?.Dispose();
             m_session = null;
             m_audioSink = null;
