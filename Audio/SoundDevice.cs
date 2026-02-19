@@ -50,7 +50,8 @@ public class SoundDevice : IAudioOutputDevice
     private double m_targetGain = DefaultGain;
     private double m_outputGain;
     private double m_lastDeviceGain = -1.0;
-    private bool m_isLowPassFilterEnabled = true;
+    // Keep output unfiltered by default; the simple LPF smears short transient clicks.
+    private bool m_isLowPassFilterEnabled;
     private double m_lowPassLeft;
     private double m_lowPassRight;
     private bool m_lowPassInitialized;
@@ -244,6 +245,8 @@ public class SoundDevice : IAudioOutputDevice
 
     private void FillTransferBufferRemainder(int srcFrames, int destFrames)
     {
+        const byte silence = 128;
+
         if (srcFrames <= 0)
         {
             var left = m_lastLeftSample;
@@ -251,9 +254,13 @@ public class SoundDevice : IAudioOutputDevice
             for (var i = 0; i < destFrames; i++)
             {
                 var dstIndex = i * 2;
-                m_transferBuffer[dstIndex] = left;
-                m_transferBuffer[dstIndex + 1] = right;
+                var t = (i + 1) / (double)destFrames;
+                m_transferBuffer[dstIndex] = LerpByte(left, silence, t);
+                m_transferBuffer[dstIndex + 1] = LerpByte(right, silence, t);
             }
+
+            m_lastLeftSample = silence;
+            m_lastRightSample = silence;
             return;
         }
 
@@ -268,9 +275,12 @@ public class SoundDevice : IAudioOutputDevice
         for (var i = firstDestIndex; i < m_transferBuffer.Length; i += 2)
         {
             var t = (i - firstDestIndex + 2) / (double)(m_transferBuffer.Length - firstDestIndex + 2);
-            m_transferBuffer[i] = LerpByte(m_transferBuffer[lastSourceIndex], lastLeft, t);
-            m_transferBuffer[i + 1] = LerpByte(m_transferBuffer[lastSourceIndex + 1], lastRight, t);
+            m_transferBuffer[i] = LerpByte(m_transferBuffer[lastSourceIndex], silence, t);
+            m_transferBuffer[i + 1] = LerpByte(m_transferBuffer[lastSourceIndex + 1], silence, t);
         }
+
+        m_lastLeftSample = silence;
+        m_lastRightSample = silence;
     }
 
     private static byte LerpByte(byte a, byte b, double t) =>
