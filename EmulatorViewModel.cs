@@ -24,15 +24,11 @@ public sealed class EmulatorViewModel : ViewModelBase, IDisposable
 {
     private readonly IMachine m_machine;
     private readonly MachineRunner m_runner;
-    private readonly IAudioOutputDevice m_audioDevice;
     private readonly ILcdScreen m_screen;
     private readonly Func<double> m_videoFrameRateProvider;
     private readonly Func<string> m_romTitleProvider;
     private readonly DisplayRecorder m_recorder;
     private volatile byte[] m_lastFrameBuffer;
-    private uint m_lastFrameChecksum;
-    private long m_lastFrameTicks;
-    private bool m_hasFrameChecksum;
 
     public EmulatorViewModel(
         IMachine machine,
@@ -45,7 +41,7 @@ public sealed class EmulatorViewModel : ViewModelBase, IDisposable
     {
         m_machine = machine ?? throw new ArgumentNullException(nameof(machine));
         m_runner = runner ?? throw new ArgumentNullException(nameof(runner));
-        m_audioDevice = audioDevice ?? throw new ArgumentNullException(nameof(audioDevice));
+        AudioDevice = audioDevice ?? throw new ArgumentNullException(nameof(audioDevice));
         m_screen = screen ?? throw new ArgumentNullException(nameof(screen));
         m_videoFrameRateProvider = videoFrameRateProvider ?? throw new ArgumentNullException(nameof(videoFrameRateProvider));
         m_romTitleProvider = romTitleProvider ?? throw new ArgumentNullException(nameof(romTitleProvider));
@@ -70,7 +66,7 @@ public sealed class EmulatorViewModel : ViewModelBase, IDisposable
 
     public SnapshotHistory SnapshotHistory { get; }
 
-    public IAudioOutputDevice AudioDevice => m_audioDevice;
+    public IAudioOutputDevice AudioDevice { get; }
 
     public bool IsRecording => m_recorder.IsRecording;
 
@@ -79,11 +75,11 @@ public sealed class EmulatorViewModel : ViewModelBase, IDisposable
         get => m_recorder.IsIndicatorOn;
     }
 
-    public bool HasFrameChecksum => m_hasFrameChecksum;
+    public bool HasFrameChecksum { get; private set; }
 
-    public uint LastFrameChecksum => m_lastFrameChecksum;
+    public uint LastFrameChecksum { get; private set; }
 
-    public long LastFrameTicks => m_lastFrameTicks;
+    public long LastFrameTicks { get; private set; }
 
     public long CpuTicks => m_machine.CpuTicks;
 
@@ -94,7 +90,7 @@ public sealed class EmulatorViewModel : ViewModelBase, IDisposable
         if (m_runner.IsRunning)
             return;
 
-        m_audioDevice.Start();
+        AudioDevice.Start();
         m_runner.Start();
     }
 
@@ -163,7 +159,7 @@ public sealed class EmulatorViewModel : ViewModelBase, IDisposable
 
     public void StartRecording()
     {
-        m_recorder.Start(m_screen.Display, m_videoFrameRateProvider(), m_audioDevice, m_romTitleProvider);
+        m_recorder.Start(m_screen.Display, m_videoFrameRateProvider(), AudioDevice, m_romTitleProvider);
     }
 
     public void StopRecording()
@@ -190,9 +186,9 @@ public sealed class EmulatorViewModel : ViewModelBase, IDisposable
 
         Buffer.BlockCopy(frameBuffer, 0, bufferCopy, 0, frameBuffer.Length);
         m_lastFrameBuffer = bufferCopy;
-        m_lastFrameChecksum = ComputeFrameChecksum(frameBuffer);
-        m_lastFrameTicks = m_machine.CpuTicks;
-        m_hasFrameChecksum = true;
+        LastFrameChecksum = ComputeFrameChecksum(frameBuffer);
+        LastFrameTicks = m_machine.CpuTicks;
+        HasFrameChecksum = true;
         m_screen.Update(frameBuffer);
         m_recorder.CaptureFrame();
         SnapshotHistory?.OnFrameRendered((ulong)m_machine.CpuTicks);
@@ -217,9 +213,9 @@ public sealed class EmulatorViewModel : ViewModelBase, IDisposable
         var frameBuffer = new byte[m_machine.Video.FrameWidth * m_machine.Video.FrameHeight * m_machine.Video.FrameBytesPerPixel];
         m_machine.Video.CopyToFrameBuffer(frameBuffer);
         m_lastFrameBuffer = frameBuffer;
-        m_lastFrameChecksum = ComputeFrameChecksum(frameBuffer);
-        m_lastFrameTicks = m_machine.CpuTicks;
-        m_hasFrameChecksum = true;
+        LastFrameChecksum = ComputeFrameChecksum(frameBuffer);
+        LastFrameTicks = m_machine.CpuTicks;
+        HasFrameChecksum = true;
         m_screen.Update(frameBuffer);
         DisplayUpdated?.Invoke(this, EventArgs.Empty);
     }

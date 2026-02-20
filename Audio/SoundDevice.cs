@@ -34,7 +34,6 @@ public class SoundDevice : IAudioOutputDevice
 
     private readonly int m_source;
     private readonly int[] m_buffers;
-    private readonly int m_sampleRate;
     private readonly double m_bufferDurationMs;
     private readonly int m_transferFrames;
     private readonly int m_targetBufferedFrames;
@@ -69,7 +68,7 @@ public class SoundDevice : IAudioOutputDevice
 
     public SoundDevice(int sampleHz)
     {
-        m_sampleRate = sampleHz;
+        SampleRateHz = sampleHz;
 
         // Initialize OpenAL.
         var device = ALC.OpenDevice(null);
@@ -81,19 +80,19 @@ public class SoundDevice : IAudioOutputDevice
         m_source = AL.GenSource();
 
         // Enough data for 0.1 seconds of play, split between all buffers (stereo: 2 bytes per sample).
-        var bufferSize = (int)(m_sampleRate * 0.1 * 2 / BufferCount);
+        var bufferSize = (int)(SampleRateHz * 0.1 * 2 / BufferCount);
         m_transferBuffer = new byte[bufferSize];
         m_transferFrames = m_transferBuffer.Length / 2;
         m_targetBufferedFrames = m_transferFrames * BufferCount;
         var cpuBufferCapacityFrames = m_targetBufferedFrames * 3; // Leave headroom for brief spikes.
         m_cpuBuffer = new CircularBuffer<byte>(cpuBufferCapacityFrames * 2);
-        m_bufferDurationMs = 1000.0 * m_transferFrames / m_sampleRate;
-        m_gainStep = 1.0 / (m_sampleRate * (VolumeRampMs / 1000.0));
-        m_lowPassAlpha = ComputeLowPassAlpha(LowPassCutoffHz, m_sampleRate);
-        m_highPassAlpha = ComputeHighPassAlpha(HighPassCutoffHz, m_sampleRate);
+        m_bufferDurationMs = 1000.0 * m_transferFrames / SampleRateHz;
+        m_gainStep = 1.0 / (SampleRateHz * (VolumeRampMs / 1000.0));
+        m_lowPassAlpha = ComputeLowPassAlpha(LowPassCutoffHz, SampleRateHz);
+        m_highPassAlpha = ComputeHighPassAlpha(HighPassCutoffHz, SampleRateHz);
     }
 
-    public int SampleRateHz => m_sampleRate;
+    public int SampleRateHz { get; }
 
     public void SetCaptureSink(IAudioSampleSink value)
     {
@@ -208,7 +207,7 @@ public class SoundDevice : IAudioOutputDevice
     {
         FillTransferBuffer();
 
-        ExecuteAl("BufferData", () => AL.BufferData(bufferId, ALFormat.Stereo8, m_transferBuffer, m_sampleRate));
+        ExecuteAl("BufferData", () => AL.BufferData(bufferId, ALFormat.Stereo8, m_transferBuffer, SampleRateHz));
 
         // Queue the device buffer for playback.
         ExecuteAl("SourceQueueBuffer", () => AL.SourceQueueBuffer(m_source, bufferId));
@@ -347,7 +346,7 @@ public class SoundDevice : IAudioOutputDevice
             m_captureBuffer[m_captureBufferIndex++] = rightPcm;
             if (m_captureBufferIndex >= m_captureBuffer.Length)
             {
-                captureSink.OnSamples(m_captureBuffer.AsSpan(0, m_captureBufferIndex), m_sampleRate);
+                captureSink.OnSamples(m_captureBuffer.AsSpan(0, m_captureBufferIndex), SampleRateHz);
                 m_captureBufferIndex = 0;
             }
         }
@@ -416,7 +415,7 @@ public class SoundDevice : IAudioOutputDevice
         if (captureSink == null || m_captureBufferIndex <= 0)
             return;
 
-        captureSink.OnSamples(m_captureBuffer.AsSpan(0, m_captureBufferIndex), m_sampleRate);
+        captureSink.OnSamples(m_captureBuffer.AsSpan(0, m_captureBufferIndex), SampleRateHz);
         m_captureBufferIndex = 0;
     }
 

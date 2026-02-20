@@ -18,7 +18,6 @@ namespace DTC.Emulation;
 public sealed class MachineRunner : ISnapshotHost, IDisposable
 {
     private const int PauseRefreshIntervalMs = 33;
-    private readonly IMachine m_machine;
     private readonly ClockSync m_clockSync;
     private readonly Lock m_cpuStepLock = new();
     private readonly ManualResetEventSlim m_cpuPauseEvent = new(initialState: true);
@@ -30,14 +29,14 @@ public sealed class MachineRunner : ISnapshotHost, IDisposable
 
     public MachineRunner(IMachine machine, Func<double> cpuHzProvider, Action<Exception> onError = null)
     {
-        m_machine = machine ?? throw new ArgumentNullException(nameof(machine));
+        Machine = machine ?? throw new ArgumentNullException(nameof(machine));
         if (cpuHzProvider == null)
             throw new ArgumentNullException(nameof(cpuHzProvider));
-        m_clockSync = new ClockSync(cpuHzProvider, () => m_machine.CpuTicks, () => m_machine.Reset());
+        m_clockSync = new ClockSync(cpuHzProvider, () => Machine.CpuTicks, () => Machine.Reset());
         m_onError = onError;
     }
 
-    public IMachine Machine => m_machine;
+    public IMachine Machine { get; }
 
     public bool IsRunning => m_cpuThread != null;
 
@@ -53,10 +52,10 @@ public sealed class MachineRunner : ISnapshotHost, IDisposable
 
         m_shutdownRequested = false;
         m_clockSync.Reset();
-        m_lastCpuTicks = m_machine.CpuTicks;
+        m_lastCpuTicks = Machine.CpuTicks;
         m_cpuThread = new Thread(RunCpuLoop)
         {
-            Name = $"{m_machine.Name} CPU",
+            Name = $"{Machine.Name} CPU",
             IsBackground = true
         };
         m_cpuThread.Start();
@@ -78,7 +77,7 @@ public sealed class MachineRunner : ISnapshotHost, IDisposable
     {
         lock (m_cpuStepLock)
         {
-            m_machine.Reset();
+            Machine.Reset();
             m_clockSync.Reset();
             m_lastCpuTicks = 0;
         }
@@ -127,14 +126,14 @@ public sealed class MachineRunner : ISnapshotHost, IDisposable
                 m_clockSync.SyncWithRealTime();
                 lock (m_cpuStepLock)
                 {
-                    m_machine.StepCpu();
-                    var current = m_machine.CpuTicks;
+                    Machine.StepCpu();
+                    var current = Machine.CpuTicks;
                     var delta = current - m_lastCpuTicks;
                     if (delta > 0)
-                        m_machine.AdvanceDevices(delta);
+                        Machine.AdvanceDevices(delta);
                     m_lastCpuTicks = current;
-                    if (m_machine.TryConsumeInterrupt())
-                        m_machine.RequestInterrupt();
+                    if (Machine.TryConsumeInterrupt())
+                        Machine.RequestInterrupt();
                 }
             }
         }
@@ -151,18 +150,18 @@ public sealed class MachineRunner : ISnapshotHost, IDisposable
 
     bool ISnapshotHost.IsRunning => IsRunning;
 
-    bool ISnapshotHost.HasLoadedCartridge => m_machine.HasLoadedCartridge;
+    bool ISnapshotHost.HasLoadedCartridge => Machine.HasLoadedCartridge;
 
-    ulong ISnapshotHost.CpuClockTicks => (ulong)m_machine.CpuTicks;
+    ulong ISnapshotHost.CpuClockTicks => (ulong)Machine.CpuTicks;
 
-    int ISnapshotHost.FrameWidth => m_machine.Video.FrameWidth;
+    int ISnapshotHost.FrameWidth => Machine.Video.FrameWidth;
 
-    int ISnapshotHost.FrameHeight => m_machine.Video.FrameHeight;
+    int ISnapshotHost.FrameHeight => Machine.Video.FrameHeight;
 
-    int ISnapshotHost.GetStateSize() => m_machine.Snapshotter.GetStateSize();
+    int ISnapshotHost.GetStateSize() => Machine.Snapshotter.GetStateSize();
 
     void ISnapshotHost.CaptureState(MachineState state, Span<byte> frameBuffer) =>
-        m_machine.Snapshotter.Save(state, frameBuffer);
+        Machine.Snapshotter.Save(state, frameBuffer);
 
     void ISnapshotHost.LoadState(MachineState state) =>
         LoadState(state);
@@ -174,8 +173,8 @@ public sealed class MachineRunner : ISnapshotHost, IDisposable
 
         lock (m_cpuStepLock)
         {
-            m_machine.Snapshotter.Load(state);
-            m_lastCpuTicks = m_machine.CpuTicks;
+            Machine.Snapshotter.Load(state);
+            m_lastCpuTicks = Machine.CpuTicks;
             m_clockSync.Resync();
         }
 
