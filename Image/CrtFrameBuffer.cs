@@ -27,6 +27,7 @@ public sealed class CrtFrameBuffer
     private const float PhosphorShrink = 0.7f;
     private const float CrtSaturationR = 1.1f;
     private const float CrtSaturationB = 1.1f;
+    private const float CrtBlackFloor = 5.0f;
     private const float GrainStrength = 0.04f;
     private const int PauseWidth = 38;
     private const int PauseHeight = 12;
@@ -196,6 +197,11 @@ public sealed class CrtFrameBuffer
                 var g = (float)source[src + 1];
                 var b = (float)source[src + 2];
 
+                // Lift the black floor so unlit source pixels still receive a faint phosphor glow.
+                r = RemapToCrtBlackFloor(r);
+                g = RemapToCrtBlackFloor(g);
+                b = RemapToCrtBlackFloor(b);
+
                 if (IsPaused)
                 {
                     var lumin = r * 0.2f + g * 0.7f + b * 0.1f;
@@ -325,5 +331,15 @@ public sealed class CrtFrameBuffer
         if (value < 0.0f)
             return 0;
         return value >= 255.0f ? (byte)255 : (byte)value;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float RemapToCrtBlackFloor(float value)
+    {
+        if (value <= 0.0f)
+            return CrtBlackFloor;
+        if (value >= 255.0f)
+            return 255.0f;
+        return CrtBlackFloor + value * ((255.0f - CrtBlackFloor) / 255.0f);
     }
 }
