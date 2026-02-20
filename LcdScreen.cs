@@ -7,10 +7,12 @@
 // about your modifications. Your contributions are valued!
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
+
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using DTC.Core.Image;
 using DTC.Emulation.Image;
 
 namespace DTC.Emulation;
@@ -20,8 +22,9 @@ namespace DTC.Emulation;
 /// </summary>
 public sealed class LcdScreen : ILcdScreen, IDisposable
 {
-    private byte[] m_previousOutput;
+    private readonly FrameBuffer m_previousOutput;
     private CrtBlendWeights m_crtBlendWeights = CrtBlendWeights.Default;
+    private bool m_hasPreviousOutput;
 
     public WriteableBitmap Display { get; }
     public CrtFrameBuffer FrameBuffer { get; }
@@ -52,6 +55,7 @@ public sealed class LcdScreen : ILcdScreen, IDisposable
         FrameBuffer = new CrtFrameBuffer(width, height);
         var pixelSize = new PixelSize(FrameBuffer.OutputWidth, FrameBuffer.OutputHeight);
         Display = new WriteableBitmap(pixelSize, new Vector(96, 96), PixelFormat.Rgba8888, AlphaFormat.Premul);
+        m_previousOutput = new FrameBuffer(FrameBuffer.OutputWidth, FrameBuffer.OutputHeight, CrtFrameBuffer.BytesPerPixel);
         FillBlack();
     }
 
@@ -61,11 +65,23 @@ public sealed class LcdScreen : ILcdScreen, IDisposable
             throw new ArgumentNullException(nameof(frameBuffer));
 
         var output = FrameBuffer.Apply(frameBuffer);
-        var blended = output;
+        byte[] blended;
         if (FrameBuffer.IsCrt)
-            blended = BlendWithPrevious(output);
+        {
+            if (!m_hasPreviousOutput)
+                m_previousOutput.CopyFrom(output);
+            else
+                m_previousOutput.BlendWithPrevious(output, m_crtBlendWeights.PreviousFrameWeight, m_crtBlendWeights.CurrentFrameWeight);
+
+            blended = m_previousOutput.Data;
+            m_hasPreviousOutput = true;
+        }
         else
-            CachePreviousOutput(output);
+        {
+            m_previousOutput.CopyFrom(output);
+            blended = output;
+            m_hasPreviousOutput = true;
+        }
 
         using var fb = Display.Lock();
         var length = Math.Min(blended.Length, fb.RowBytes * fb.Size.Height);
@@ -81,39 +97,5 @@ public sealed class LcdScreen : ILcdScreen, IDisposable
         for (var i = 3; i < bytes.Length; i += CrtFrameBuffer.BytesPerPixel)
             bytes[i] = 255; // Alpha channel is always opaque.
         Marshal.Copy(bytes, 0, fb.Address, bytes.Length);
-    }
-
-    private byte[] BlendWithPrevious(byte[] output)
-    {
-        if (output == null)
-            return null;
-
-        var previous = m_previousOutput;
-        if (previous == null || previous.Length != output.Length)
-        {
-            previous = new byte[output.Length];
-            Buffer.BlockCopy(output, 0, previous, 0, output.Length);
-            m_previousOutput = previous;
-            return previous;
-        }
-
-        var length = output.Length;
-        var previousWeight = m_crtBlendWeights.PreviousFrameWeight;
-        var currentWeight = m_crtBlendWeights.CurrentFrameWeight;
-        var totalWeight = previousWeight + currentWeight;
-        for (var i = 0; i < length; i++)
-            previous[i] = (byte)((previous[i] * previousWeight + output[i] * currentWeight) / totalWeight);
-
-        return previous;
-    }
-
-    private void CachePreviousOutput(byte[] output)
-    {
-        if (output == null)
-            return;
-
-        if (m_previousOutput == null || m_previousOutput.Length != output.Length)
-            m_previousOutput = new byte[output.Length];
-        Buffer.BlockCopy(output, 0, m_previousOutput, 0, output.Length);
     }
 }
