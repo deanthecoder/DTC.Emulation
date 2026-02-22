@@ -85,7 +85,7 @@ public static class RomNameHelper
         name = name.Trim();
         if (string.IsNullOrWhiteSpace(name))
             return null;
-        if (wasSlugStyle)
+        if (wasSlugStyle || ShouldTitleCasePlainName(name))
             name = ToReadableTitleCase(name);
         return name;
     }
@@ -201,4 +201,9 @@ public static class RomNameHelper
         tokenIndex > 0 &&
         tokenIndex < tokenCount - 1 &&
         LowercaseTitleWords.Contains(lower);
+
+    private static bool ShouldTitleCasePlainName(string value) =>
+        !string.IsNullOrWhiteSpace(value) &&
+        value.Any(char.IsLetter) &&
+        string.Equals(value, value.ToLowerInvariant(), StringComparison.Ordinal);
 }
