@@ -8,6 +8,7 @@
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 using System.Runtime.CompilerServices;
+using DTC.Emulation.Snapshot;
 
 namespace DTC.Emulation.Devices;
 
@@ -45,4 +46,12 @@ public sealed class Memory : IMemDevice
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private uint GetIndex(uint address) =>
         address < m_length ? address : address % m_length;
+
+    public int GetStateSize() => Data.Length;
+
+    public void SaveState(ref StateWriter writer) =>
+        writer.WriteBytes(Data);
+
+    public void LoadState(ref StateReader reader) =>
+        reader.ReadBytes(Data);
 }

@@ -53,6 +53,22 @@ public sealed class MachineRunner : ISnapshotHost, IDisposable
         m_shutdownRequested = false;
         m_clockSync.Reset();
         m_lastCpuTicks = Machine.CpuTicks;
+        StartCpuThread();
+    }
+
+    public void StartFromCurrentState()
+    {
+        if (m_cpuThread != null)
+            return;
+
+        m_shutdownRequested = false;
+        m_clockSync.Resync();
+        m_lastCpuTicks = Machine.CpuTicks;
+        StartCpuThread();
+    }
+
+    private void StartCpuThread()
+    {
         m_cpuThread = new Thread(RunCpuLoop)
         {
             Name = $"{Machine.Name} CPU",
@@ -84,6 +100,38 @@ public sealed class MachineRunner : ISnapshotHost, IDisposable
     }
 
     public void ResyncClock() => m_clockSync.Resync();
+
+    public MachineState CaptureState()
+    {
+        if (Machine.Snapshotter == null)
+            throw new InvalidOperationException("Snapshot support is not available for this machine.");
+
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            try
+            {
+                lock (m_cpuStepLock)
+                {
+                    var stateSize = Machine.Snapshotter.GetStateSize();
+                    if (stateSize <= 0)
+                        throw new InvalidOperationException("Snapshot state size is invalid.");
+
+                    var state = new MachineState(stateSize);
+                    var frameBufferSize = Machine.Video.FrameWidth * Machine.Video.FrameHeight * Machine.Video.FrameBytesPerPixel;
+                    var frameBuffer = frameBufferSize > 0 ? new byte[frameBufferSize] : [];
+                    Machine.Snapshotter.Save(state, frameBuffer);
+                    return state;
+                }
+            }
+            catch (InvalidOperationException e) when (e.Message.Contains("State buffer size mismatch", StringComparison.Ordinal))
+            {
+                if (attempt == 2)
+                    throw;
+            }
+        }
+
+        throw new InvalidOperationException("Unable to capture snapshot state.");
+    }
 
     public bool TogglePause()
     {
