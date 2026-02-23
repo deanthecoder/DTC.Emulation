@@ -99,6 +99,19 @@ public sealed class MachineRunner : ISnapshotHost, IDisposable
         }
     }
 
+    public void HardReset()
+    {
+        lock (m_cpuStepLock)
+        {
+            if (Machine is IHardResettableMachine hardResettableMachine)
+                hardResettableMachine.HardReset();
+            else
+                Machine.Reset();
+            ResyncClock();
+            m_lastCpuTicks = 0;
+        }
+    }
+
     public void ResyncClock() => m_clockSync.Resync();
 
     public MachineState CaptureState()
