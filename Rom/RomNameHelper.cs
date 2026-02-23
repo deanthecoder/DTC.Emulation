@@ -165,7 +165,7 @@ public static class RomNameHelper
             return token;
         if (token.Contains('-', StringComparison.Ordinal))
         {
-            var parts = token.Split('-', StringSplitOptions.None);
+            var parts = token.Split('-');
             for (var i = 0; i < parts.Length; i++)
                 parts[i] = ToReadableHyphenPart(parts[i], tokenIndex, tokenCount, i, parts.Length);
             return string.Join('-', parts);

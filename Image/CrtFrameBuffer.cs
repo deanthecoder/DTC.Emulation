@@ -9,6 +9,7 @@
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
 using System.Collections;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace DTC.Emulation.Image;
@@ -29,6 +30,7 @@ public sealed class CrtFrameBuffer
     private const float CrtSaturationB = 1.1f;
     private const float CrtBlackFloor = 5.0f;
     private const float GrainStrength = 0.04f;
+    private const float RetroScanlineStrength = 15.0f;
     private const int PauseWidth = 38;
     private const int PauseHeight = 12;
     private const int PauseOffsetX = 20;
@@ -48,6 +50,8 @@ public sealed class CrtFrameBuffer
     private readonly byte[] m_output;
     private readonly float[][] m_grain;
     private readonly Random m_random = new Random(0);
+    private static readonly long AnimationStartTimestamp = Stopwatch.GetTimestamp();
+    private static readonly double StopwatchTicksToSeconds = 1.0 / Stopwatch.Frequency;
 
     /// <summary>
     /// Output framebuffer width in pixels (3x input).
@@ -73,6 +77,11 @@ public sealed class CrtFrameBuffer
     /// Toggles CRT-style processing; when false, a nearest-neighbor scale is applied.
     /// </summary>
     public bool IsCrt { get; set; } = true;
+
+    /// <summary>
+    /// Toggles the moving retro scanline sweep overlay used in CRT mode.
+    /// </summary>
+    public bool IsRetroScanlineEffectEnabled { get; set; } = true;
 
     /// <summary>
     /// Toggles pause-specific effects.
@@ -156,12 +165,13 @@ public sealed class CrtFrameBuffer
         const float brightnessB = brightness * CrtSaturationB;
         var inputStride = m_inputWidth * SourceBytesPerPixel;
         var outputStride = OutputWidth * BytesPerPixel;
+        var retroScanlineTimeSeconds = IsRetroScanlineEffectEnabled ? GetAnimationTimeSeconds() : 0.0;
 
         var dy = 0;
         var iTime = 0.0;
         if (IsPaused)
         {
-            iTime = DateTime.Now.TimeOfDay.TotalSeconds;
+            iTime = GetAnimationTimeSeconds();
             dy = (int)(m_random.NextDouble() * 1.5);
         }
 
@@ -169,6 +179,12 @@ public sealed class CrtFrameBuffer
         {
             var outputY = y * Scale;
             var outputRowBase = outputY * outputStride;
+            var retroScanlineBar0 = IsRetroScanlineEffectEnabled ? GetRetroScanlineBarForOutputRow(outputY, retroScanlineTimeSeconds) : 0.0f;
+            var retroScanlineBar1 = IsRetroScanlineEffectEnabled ? GetRetroScanlineBarForOutputRow(outputY + 1, retroScanlineTimeSeconds) : 0.0f;
+            var retroScanlineBar2 = IsRetroScanlineEffectEnabled ? GetRetroScanlineBarForOutputRow(outputY + 2, retroScanlineTimeSeconds) : 0.0f;
+            var scanlineLift0 = retroScanlineBar0 * RetroScanlineStrength;
+            var scanlineLift1 = retroScanlineBar1 * RetroScanlineStrength;
+            var scanlineLift2 = retroScanlineBar2 * RetroScanlineStrength;
 
             var dx = 0;
             var distFromPulse = 1.0;
@@ -251,24 +267,33 @@ public sealed class CrtFrameBuffer
                 {
                     var outputRow = outputPixelBase + sy * outputStride;
                     var grainRow = m_grain[outputY + sy];
+                    var scanlineLift = sy switch
+                    {
+                        0 => scanlineLift0,
+                        1 => scanlineLift1,
+                        _ => scanlineLift2
+                    };
 
-                    var grain0 = grainRow[scaledX];
+                    var grainBase0 = grainRow[scaledX];
+                    var lift0 = grainBase0 * scanlineLift;
                     var dst = outputRow;
-                    m_output[dst] = ClampToByte(r * grain0);
-                    m_output[dst + 1] = ClampToByte(gPhosphor * grain0);
-                    m_output[dst + 2] = ClampToByte(bPhosphor * grain0);
+                    m_output[dst] = ClampToByte(r * grainBase0 + lift0);
+                    m_output[dst + 1] = ClampToByte(gPhosphor * grainBase0 + lift0);
+                    m_output[dst + 2] = ClampToByte(bPhosphor * grainBase0 + lift0);
 
-                    var grain1 = grainRow[scaledX + 1];
+                    var grainBase1 = grainRow[scaledX + 1];
+                    var lift1 = grainBase1 * scanlineLift;
                     dst += BytesPerPixel;
-                    m_output[dst] = ClampToByte(rPhosphor * grain1);
-                    m_output[dst + 1] = ClampToByte(g * grain1);
-                    m_output[dst + 2] = ClampToByte(bPhosphor * grain1);
+                    m_output[dst] = ClampToByte(rPhosphor * grainBase1 + lift1);
+                    m_output[dst + 1] = ClampToByte(g * grainBase1 + lift1);
+                    m_output[dst + 2] = ClampToByte(bPhosphor * grainBase1 + lift1);
 
-                    var grain2 = grainRow[scaledX + 2];
+                    var grainBase2 = grainRow[scaledX + 2];
+                    var lift2 = grainBase2 * scanlineLift;
                     dst += BytesPerPixel;
-                    m_output[dst] = ClampToByte(rPhosphor * grain2);
-                    m_output[dst + 1] = ClampToByte(gPhosphor * grain2);
-                    m_output[dst + 2] = ClampToByte(b * grain2);
+                    m_output[dst] = ClampToByte(rPhosphor * grainBase2 + lift2);
+                    m_output[dst + 1] = ClampToByte(gPhosphor * grainBase2 + lift2);
+                    m_output[dst + 2] = ClampToByte(b * grainBase2 + lift2);
                 }
             }
         }
@@ -342,4 +367,34 @@ public sealed class CrtFrameBuffer
             return 255.0f;
         return CrtBlackFloor + value * ((255.0f - CrtBlackFloor) / 255.0f);
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private float GetRetroScanlineBarForOutputRow(int outputY, double timeSeconds)
+    {
+        var uvY = ((outputY + 0.5f) / OutputHeight) - 0.5f;
+        return GetRetroScanlineBar(uvY, (float)timeSeconds);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float GetRetroScanlineBar(float uvY, float timeSeconds)
+    {
+        var y = uvY + 0.5f;
+        y = Fract(y * 0.7f - timeSeconds * 0.1f);
+        return SmoothStep(0.7f, 0.98f, y) + SmoothStep(0.98f, 1.0f, 1.0f - y);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float SmoothStep(float edge0, float edge1, float x)
+    {
+        var t = Math.Clamp((x - edge0) / (edge1 - edge0), 0.0f, 1.0f);
+        return t * t * (3.0f - 2.0f * t);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float Fract(float value) =>
+        value - MathF.Floor(value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static double GetAnimationTimeSeconds() =>
+        (Stopwatch.GetTimestamp() - AnimationStartTimestamp) * StopwatchTicksToSeconds;
 }
